@@ -1,0 +1,344 @@
+---
+title: "DECIPHER protocol"
+author: "JP Flores"
+date: "10/27/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+Let's install and load the needed packages for this:
+```{r}
+install.packages("DECIPHER")
+install.packages("tidyverse")
+
+library(tidyverse)
+library(DECIPHER)
+library(Biostrings)
+library(RSQLite)
+library(dbplyr)
+library(tidyverse)
+library(DBI)
+library(ggdark)
+library(dplyr)
+library(msa)
+library(ggpubr)
+library(ggsci)
+library(phyclust)
+library(ggmsa)
+library(plotly)
+library(readr)
+library(ggrepel)
+```
+
+Database Management & Connection    
+```{r}
+conuslabdb <- dbConnect(SQLite(), "./conuslabdb.sqlite")
+dbListTables(conuslabdb)
+```
+
+
+Add sequences to database
+```{r}
+
+Seqs2DB("~/Desktop/R Docs/conuslab/conuslab/FASTA/A_con_AINTA-MID4_AllReads_clip.fasta",
+        replaceTbl = TRUE,
+        tblName = "ASuperfam",
+        type = "FASTA",
+        dbFile = conuslabdb,
+        identifier = "hawaiian_catus")
+
+Seqs2DB("~/Desktop/R Docs/conuslab/conuslab/FASTA/A_con_AINTA-MID4_AllReads_clip.fasta",
+        replaceTbl = TRUE,
+        tblName = "hawaiian",
+        type = "FASTA",
+        dbFile = conuslabdb,
+        identifier = "hawaiian_catus")
+
+#Add Samoan C.catus sequences to databases
+Seqs2DB("~/Desktop/R Docs/conuslab/conuslab/FASTA/A_con_AINTA-MID1_AllReads_clip.fasta",
+        replaceTbl = FALSE,
+        tblName = "ASuperfam",
+        type = "FASTA",
+        dbFile = conuslabdb,
+        identifier = "samoan_catus")
+
+Seqs2DB("~/Desktop/R Docs/conuslab/conuslab/FASTA/A_con_AINTA-MID1_AllReads_clip.fasta",
+        replaceTbl = TRUE,
+        tblName = "samoan",
+        type = "FASTA",
+        dbFile = conuslabdb,
+        identifier = "samoan_catus")
+
+#Add C.purpurascens sequences to databases
+Seqs2DB("~/Desktop/R Docs/conuslab/conuslab/FASTA/A_con_AINTA-MID2_AllReads_clip.fasta",
+        replaceTbl = FALSE,
+        tblName = "ASuperfam",
+        type = "FASTA",
+        dbFile = conuslabdb,
+        identifier = "purp")
+
+Seqs2DB("~/Desktop/R Docs/conuslab/conuslab/FASTA/A_con_AINTA-MID2_AllReads_clip.fasta",
+        replaceTbl = TRUE,
+        tblName = "purp",
+        type = "FASTA",
+        dbFile = conuslabdb,
+        identifier = "purp")
+
+#Add C.tulipa sequences to databases
+Seqs2DB("~/Desktop/R Docs/conuslab/conuslab/FASTA/A_con_AINTA-MID5_AllReads_clip.fasta",
+        replaceTbl = FALSE,
+        tblName = "ASuperfam",
+        type = "FASTA",
+        dbFile = conuslabdb,
+        identifier = "tulipa")
+
+Seqs2DB("~/Desktop/R Docs/conuslab/conuslab/FASTA/A_con_AINTA-MID5_AllReads_clip.fasta",
+        replaceTbl = TRUE,
+        tblName = "tulipa",
+        type = "FASTA",
+        dbFile = conuslabdb,
+        identifier = "tulipa")
+
+BrowseDB(conuslabdb, tblName = "ASuperFam")
+BrowseDB(conuslabdb, tblName = "purp")
+BrowseDB(conuslabdb, tblName = "samoan")
+BrowseDB(conuslabdb, tblName = "hawaiian")
+BrowseDB(conuslabdb, tblName = "tulipa")
+
+```
+
+
+Sequence management in SQLite database
+```{r}
+dna1 <- SearchDB(conuslabdb, tblName = "samoan", identifier = "samoan_catus")
+aa1 <- SearchDB(conuslabdb, type = "AAStringSet", tblName = "samoan", 
+                identifier = "samoan_catus")
+dna2 <- SearchDB(conuslabdb, tblName = "purp", identifier = "purp")
+aa2 <- SearchDB(conuslabdb, type = "AAStringSet", tblName = "purp", 
+                identifier = "purp")
+dna4 <- SearchDB(conuslabdb, tblName = "hawaiian", identifier = "hawaiian_catus")
+aa4 <- SearchDB(conuslabdb, type = "AAStringSet", tblName = "hawaiian", 
+                identifier = "hawaiian_catus")
+dna5 <- SearchDB(conuslabdb, tblName = "tulipa", identifier = "tulipa")
+aa5 <- SearchDB(conuslabdb, type = "AAStringSet", tblName = "tulipa", 
+                identifier = "tulipa")
+```
+
+Edit SQLite DB to create sequence frequency distribution
+```{r}
+dbExecute(conuslabdb,
+          "drop table if exists ") #name of table you want deleted 
+
+dbExecute(conuslabdb,
+"create table ________ as  
+select row_names, identifier,
+substr(description, 0, 15) as description,
+substr(description, 20, 25) as length
+from ________") #the first blank refers to the name of the new table and the second is what table you want to edit
+
+BrowseDB(conuslabdb, tblName = "______") #table name
+```
+
+
+Convert SQLite DB to a tibble to construct histograms. Go to this website https://sqliteonline.com/ and make sure your SQLite DB works. You can then export from this website as csv's, and that's what you'll use for histograms. 
+Don't forget to choose the option "First Line" for Column name. 
+```{r}
+samoa_db <- read_csv("samoa_db.csv")
+samoa_db
+
+purp_db <- read_csv("purp_db.csv")
+purp_db 
+
+hawaiian_db <-read_csv("hawaiian_db.csv")
+hawaiian_db 
+
+tulipa_db <-read_csv("tulipa_db.csv")
+tulipa_db
+```
+
+
+Visualization of histograms (# of sequences vs. read lengths)
+```{r}
+samoahist <- samoa_db %>%
+        ggplot(aes(x = length)) + 
+        geom_histogram(binwidth = 1, fill = "dodgerblue2") +
+        labs(y = "# of Sequences",
+             x = "Read Lengths (bases)",
+             subtitle = "Dataset of 23,800 sequences",
+             title = expression('Sequence Frequency Distribution for Samoan'~ italic(C.catus)~'')) +
+        theme(axis.text.x=element_text(angle= 20, size= 9, vjust= 0.5)) +
+        xlim(0,275) 
+
+purphist <- purp_db %>%
+  ggplot(aes(x = length)) + 
+  labs(y = "# of Sequences", 
+       x = "Read Lengths (bases)", 
+       subtitle = "Dataset of 31,143 sequences",
+       title = expression('Sequence Frequency Distribution for'~ italic(C.purpurascens)~'')) +
+  geom_histogram(binwidth = 1, fill = "dodgerblue2") + 
+  theme(axis.text.x=element_text(angle= 20, size= 9, vjust= 0.5)) +
+  xlim(0,275)
+
+hawaiihist <- hawaiian_db %>%
+  ggplot(aes(x = length)) + 
+  labs(y = "# of Sequences",
+       x = "Read Lengths (bases)",
+       subtitle = "Dataset of 40,195 sequences",
+       title = expression('Sequence Frequency Distribution for Hawaiian'~italic(C.catus)~'')) +
+  geom_histogram(binwidth = 1, fill = "dodgerblue2") + 
+  theme(axis.text.x=element_text(angle= 20, size= 9, vjust= 0.5)) +
+  xlim(0, 300)
+
+tulipahist <- tulipa_db %>%
+  ggplot(aes(x = length)) + 
+  labs(y = "# of Sequences",
+       x = "Read Lengths (bases)",
+       subtitle = "Dataset of 22,688 sequences",
+       title = expression('Sequence Frequency Distribution for'~italic(C.tulipa)~'')) +
+  geom_histogram(binwidth = 1, fill = "dodgerblue2") + 
+  theme(axis.text.x=element_text(angle= 20, size= 9, vjust= 0.5)) +
+  xlim(0, 275)
+```
+
+
+Tidy the tibbles/ cut unnecessary lengths for Samoa C.catus
+```{r}
+samoathreshid <- samoa_db %>%
+  arrange(length) %>%
+  count(length)
+
+View(samoathreshid)
+
+samoathresh <- samoathreshid %>%
+  filter(length > 180 & length < 275) %>%
+  filter(length != c(77, 78, 79, 106))
+
+View(samoathresh)
+
+samoathreshhist <- samoathresh %>%
+  ggplot(aes(x = length, y = n)) + 
+  geom_col(fill = "dodgerblue2") +
+  labs(y = "# of Sequences",
+       x = "Read Lengths (bases)",
+       subtitle = "After determining cut-off",
+       title = expression('Sequence Frequency Distribution for Samoan'~ italic(C.catus)~'')) +
+  theme(axis.text.x=element_text(angle= 20, size= 9, vjust= 0.5)) +
+  xlim(180,275) 
+```
+
+
+Tidy the tibbles/ cut unnecessary lengths for C. purpurascens
+```{r}
+purpthreshid <- purp_db %>%
+  arrange(length) %>%
+  count(length)
+
+View(purpthreshid)
+
+purpthresh <- purpthreshid %>%
+    filter(length > 180 & length < 234) %>%
+    filter(length != c(77, 78, 79)) 
+
+View(purpthresh)
+
+purpthreshhist <- purpthresh %>%
+  ggplot(aes(x = length, y = n)) + 
+  labs(y = "# of Sequences", 
+       x = "Read Lengths", 
+       subtitle = "After determining cut-off",
+       title = expression('Sequence Frequency Distribution for'~ italic(C.purpurascens)~'')) +
+  geom_col(fill = "dodgerblue2") +  
+  theme(axis.text.x=element_text(angle= 20, size= 9, vjust= 0.5)) +
+  xlim(180, 235)
+
+```
+
+
+Tidy the tibbles/ cut unnecessary lengths for Hawaiian C.catus
+```{r}
+hawaiianthreshid <- hawaiian_db %>%
+  arrange(length) %>%
+  count(length)
+
+View(hawaiianthreshid)
+
+hawaiianthresh <- hawaiianthreshid %>%
+    filter(length > 184 & length < 281) %>%
+    filter(length != c(77, 78, 79, 30, 36))
+
+View(hawaiianthresh)
+
+hawaiianthreshhist <- hawaiianthresh %>%
+  ggplot(aes(x = length, y = n)) + 
+  labs(y = "# of Sequences",
+       x = "Read Lengths",
+       subtitle = "After determining cut-off",
+       title = expression('Sequence Frequency Distribution for Hawaiian'~italic(C.catus)~'')) +
+  geom_col(fill = "dodgerblue2") +  
+  theme(axis.text.x=element_text(angle= 20, size= 9, vjust= 0.5)) +
+  xlim(185,280)
+```
+
+
+Tidy the tibbles/ cut unnecessary lengths for C.tulipa
+```{r}
+tulipathreshid <- tulipa_db %>%
+  arrange(length) %>%
+  count(length)
+
+View(tulipathreshid)
+
+tulipathresh <- tulipathreshid %>%
+    filter(length > 186) %>%
+    filter(length != c(77, 78, 79, 76, 59, 80, 72)) %>%
+    filter(length < 257)
+
+
+View(tulipathresh)
+
+tulipathreshhist <- tulipathresh %>%
+  ggplot(aes(x = length, y = n)) + 
+  labs(y = "# of Sequences",
+       x = "Read Lengths",
+       subtitle = "After determining cut-off",
+       title = expression('Sequence Frequency Distribution for'~italic(C.tulipa)~'')) +
+  geom_col(fill = "dodgerblue2") +  
+  theme(axis.text.x=element_text(angle= 75, size= 9, vjust= 0.5)) +
+  xlim(200, 230)
+```
+
+
+Convert thresholds into DNAStringSets for contig assembly 
+```{r}
+samoa_contig_assembly <- dna1[width(dna1) > 180 & width(dna1) < 275 & width(dna1) != c(77, 78, 79, 106)]
+hawaiian_contig_assemby <- dna4[width(dna4) > 184 & width(dna4) < 281 & width(dna4) != c(77, 78, 79, 30, 36)]
+purp_contig_assembly <- dna2[width(dna2) > 180 & width(dna2) < 234 & width(dna2) != c(77, 78, 79)]
+tulipa_contig_assembly <- dna5[width(dna5) > 186 & width(dna5) < 257 & width(dna5) != c(77, 78, 79, 76, 59, 80, 72)]
+```
+
+
+Contig Assembly
+```{r}
+pre_samoa_contig <- CorrectFrameshifts(samoa_contig_assembly, translate(samoa_contig_assembly, if.fuzzy.codon = "X"), type = "sequences", processors = NULL)
+
+pre_hawaiian_contig <- CorrectFrameshifts(hawaiian_contig_assembly, translate(hawaiian_contig_assembly, if.fuzzy.codon = "X"), type = "sequences", processors = NULL)
+                                          
+pre_purp_contig <- CorrectFrameshifts(purp_contig_assembly, translate(purp_contig_assembly, if.fuzzy.codon = "X"), type = "sequences", processors = NULL)                                          
+
+pre_tulipa_contig <- CorrectFrameshifts(tulipa_contig_assembly, translate(tulipa_contig_assembly, if.fuzzy.codon = "X"), type = "sequences", processors = NULL)                                           
+```
+
+
+Alignment of sequences & Distance Matrix steps
+```{r}
+align_samoa_contig <- AlignTranslation(pre_samoa_contig, processors = NULL)
+
+samoa_dm <- DistanceMatrix(align_samoa_contig, processors = NULL)
+
+samoa_contigs <- IdClusters(align_samoa_contig, method = "complete", processors = NULL, cutoff = 0.05)
+```
+
