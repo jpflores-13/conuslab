@@ -34,6 +34,7 @@ library(readr)
 library(ggrepel)
 ```
 
+
 Database Management & Connection    
 ```{r}
 conuslabdb <- dbConnect(SQLite(), "./conuslabdb.sqlite")
@@ -342,3 +343,6 @@ samoa_dm <- DistanceMatrix(align_samoa_contig, processors = NULL)
 samoa_contigs <- IdClusters(align_samoa_contig, method = "complete", processors = NULL, cutoff = 0.05)
 ```
 
+View Clusters
+```{r}
+view_samoa_clusters <- BrowseSeqs(setNames(samoa_contig_assembly, samoa_clusters$cluster))
